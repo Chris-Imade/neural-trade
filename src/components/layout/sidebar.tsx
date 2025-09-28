@@ -28,7 +28,7 @@ const navigation = [
   },
   {
     name: 'Bot Trading',
-    href: '/trading',
+    href: '/bot-trading',
     icon: Bot,
   },
   {

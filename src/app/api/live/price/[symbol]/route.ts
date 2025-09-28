@@ -10,7 +10,13 @@ if (!token || !accountId) {
 // MetaAPI REST API base URL
 const METAAPI_BASE_URL = 'https://mt-client-api-v1.london.agiliumtrade.ai';
 
-async function makeMetaApiRequest(endpoint: string): Promise<any> {
+interface MetaApiPriceResponse {
+  bid: number;
+  ask: number;
+  [key: string]: unknown;
+}
+
+async function makeMetaApiRequest(endpoint: string): Promise<MetaApiPriceResponse> {
   const response = await fetch(`${METAAPI_BASE_URL}/users/current/accounts/${accountId}${endpoint}`, {
     headers: {
       'auth-token': token!,
@@ -27,11 +33,10 @@ async function makeMetaApiRequest(endpoint: string): Promise<any> {
 
 export async function GET(
   request: Request,
-  { params }: { params: { symbol: string } }
+  { params }: { params: Promise<{ symbol: string }> }
 ) {
+  const { symbol } = await params;
   try {
-    const { symbol } = params;
-    
     if (!symbol) {
       return NextResponse.json({ error: 'Symbol parameter is required' }, { status: 400 });
     }
@@ -53,11 +58,11 @@ export async function GET(
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    console.error(`❌ Failed to fetch price for ${params.symbol}:`, errorMessage);
+    console.error(`❌ Failed to fetch price for ${symbol}:`, errorMessage);
     
     return NextResponse.json({ 
       error: `Failed to fetch price: ${errorMessage}`,
-      symbol: params.symbol,
+      symbol: symbol,
       bid: 0,
       ask: 0,
       spread: 0,

@@ -1,15 +1,32 @@
+interface StrategyParameters {
+  riskPerTrade: number;
+  propFirm: string;
+  maxPositions: number;
+  timeframe: string;
+  // Strategy-specific parameters
+  sessionStart?: number;
+  sessionEnd?: number;
+  emaFast?: number;
+  emaSlow?: number;
+  atrMultiplier?: number;
+  rsiPeriod?: number;
+  rsiOverbought?: number;
+  rsiOversold?: number;
+  lookbackPeriod?: number;
+}
+
+interface BacktestResults {
+  winRate: number;
+  profitFactor: number;
+  maxDrawdownPercent: number;
+  totalReturnPercent: number;
+}
+
 export interface StrategyPreset {
   id: string;
   name: string;
   strategy: string;
-  parameters: {
-    riskPerTrade: number;
-    propFirm: string;
-    maxPositions: number;
-    timeframe: string;
-    // Strategy-specific parameters
-    [key: string]: any;
-  };
+  parameters: StrategyParameters;
   performance: {
     winRate: number;
     profitFactor: number;
@@ -28,7 +45,7 @@ export class StrategyPresetManager {
     
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
-      return stored ? JSON.parse(stored) : this.getDefaultPresets();
+      return stored ? JSON.parse(stored) as StrategyPreset[] : this.getDefaultPresets();
     } catch {
       return this.getDefaultPresets();
     }
@@ -111,8 +128,8 @@ export class StrategyPresetManager {
   static createPresetFromBacktest(
     name: string,
     strategy: string,
-    parameters: any,
-    results: any
+    parameters: StrategyParameters,
+    results: BacktestResults
   ): StrategyPreset {
     return {
       id: `${strategy}_${Date.now()}`,

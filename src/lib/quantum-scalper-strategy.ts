@@ -11,7 +11,26 @@
  * DESIGNED BY AI, FOR AI - BEYOND HUMAN CAPABILITY
  */
 
-import { MarketData, TechnicalIndicators, TradingSignal } from './gold-trading-strategies';
+// Import from backtesting-engine instead of deleted gold-trading-strategies
+import { MarketData, TradingSignal } from './backtesting-engine';
+
+export interface TechnicalIndicators {
+  ema20: number;
+  ema50: number;
+  rsi: number;
+  atr: number;
+  volume: number;
+  macd: {
+    macd: number;
+    signal: number;
+    histogram: number;
+  };
+  bollingerBands: {
+    upper: number;
+    middle: number;
+    lower: number;
+  };
+}
 
 export interface MicrostructureData {
   bidAskSpread: number;

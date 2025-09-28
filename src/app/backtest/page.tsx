@@ -8,23 +8,54 @@ import { StrategyPresets } from '@/components/backtest/strategy-presets';
 import { TrendingUp } from 'lucide-react';
 
 interface BacktestParams {
-  strategy: 'trend_following' | 'mean_reversion' | 'momentum_trading' | 'intraday_breakout' | 'statistical_pairs' | 'volatility_channel' | 'vwap_strategy' | 'crossover_systems' | 'fibonacci_bot' | 'risk_adjusted_scalping' | 'latency_arbitrage' | 'hft_tick_scalping' | 'martingale_grid';
+  strategy: 'aggressive_scalper' | 'quantum_scalper';
   datasetId: string;
   initialBalance: number;
-  propFirm: 'equity-edge' | 'fundednext';
   riskPerTrade: number;
+}
+
+interface BacktestResults {
+  totalTrades: number;
+  winRate: number;
+  finalBalance: number;
+  totalReturnPercent: number;
+  winningTrades: number;
+  losingTrades: number;
+  executionTime: number;
+  isRealBacktest: boolean;
 }
 
 export default function BacktestPage() {
   const [backtestParams, setBacktestParams] = useState<BacktestParams | undefined>();
-  const [backtestResults, setBacktestResults] = useState<any>(undefined);
+  const [backtestResults, setBacktestResults] = useState<BacktestResults | undefined>();
 
-  const handleRunBacktest = (params: BacktestParams) => {
+  const handleRunBacktest = async (params: BacktestParams) => {
     setBacktestParams(params);
     setBacktestResults(undefined); // Clear previous results
+    
+    try {
+      const queryParams = new URLSearchParams({
+        strategy: params.strategy,
+        datasetId: params.datasetId,
+        initialBalance: params.initialBalance.toString(),
+        riskPerTrade: params.riskPerTrade.toString()
+      });
+      
+      const response = await fetch(`/api/backtest?${queryParams.toString()}`);
+      if (!response.ok) {
+        throw new Error(`Backtest failed: ${response.status}`);
+      }
+      
+      const results = await response.json();
+      setBacktestResults(results);
+      handleBacktestComplete(results);
+    } catch (error) {
+      console.error('Backtest error:', error);
+      alert('Backtest failed. Please try again.');
+    }
   };
 
-  const handleBacktestComplete = (results: any) => {
+  const handleBacktestComplete = (results: BacktestResults) => {
     setBacktestResults(results);
   };
   return (
@@ -53,10 +84,9 @@ export default function BacktestPage() {
           lastBacktestResults={backtestResults}
           onLoadPreset={(preset) => {
             setBacktestParams({
-              strategy: preset.strategy as any,
+              strategy: preset.strategy as 'aggressive_scalper' | 'quantum_scalper',
               datasetId: preset.parameters.datasetId || '',
               initialBalance: preset.parameters.initialBalance || 10000,
-              propFirm: preset.parameters.propFirm || 'equity-edge',
               riskPerTrade: preset.parameters.riskPerTrade || 1
             });
           }}
@@ -69,10 +99,10 @@ export default function BacktestPage() {
             <BacktestForm onRunBacktest={handleRunBacktest} />
           </div>
 
-          {/* Results */}
+          {/* Results - Use the proper BacktestResults component with charts and trade history */}
           <div className="lg:col-span-2">
             <BacktestResults 
-              backtestParams={backtestParams} 
+              backtestParams={backtestParams}
               onBacktestComplete={handleBacktestComplete}
             />
           </div>

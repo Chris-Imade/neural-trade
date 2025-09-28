@@ -7,16 +7,10 @@ export async function GET(request: NextRequest) {
   
   const strategy = searchParams.get('strategy') as 
     | 'aggressive_scalper'
-    | 'quantum_scalper' 
-    | 'smart_money' 
-    | 'ict_smc'
-    | 'vab_breakout'
-    | 'mean_reversion'
-    | 'dual_timeframe_trend';
+    | 'quantum_scalper';
   
   const datasetId = searchParams.get('datasetId');
   const initialBalance = Number(searchParams.get('initialBalance')) || 10000;
-  const propFirm = searchParams.get('propFirm') as 'equity-edge' | 'fundednext';
   const riskPerTrade = Number(searchParams.get('riskPerTrade')) || 1;
 
   if (!strategy || !datasetId) {
@@ -38,7 +32,6 @@ export async function GET(request: NextRequest) {
       strategy,
       datasetId,
       initialBalance,
-      propFirm,
       riskPerTrade
     });
 
