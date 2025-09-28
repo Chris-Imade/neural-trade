@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BacktestEngine } from '@/lib/backtesting-engine';
 
-// This route now uses the REAL backtesting engine with REAL strategies
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   

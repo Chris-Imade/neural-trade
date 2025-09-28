@@ -35,9 +35,13 @@ export function EquityChart({
   const chartData = useMemo(() => {
     if (!equityData || !Array.isArray(equityData) || equityData.length === 0) return null;
 
-    const minBalance = Math.min(...equityData.map(d => d.balance));
-    const maxBalance = Math.max(...equityData.map(d => d.balance));
-    const maxDrawdown = Math.max(...equityData.map(d => d.drawdown));
+    const balances = equityData.map(d => d.balance || 0).filter(b => b !== null && !isNaN(b));
+    const drawdowns = equityData.map(d => d.drawdown || 0).filter(d => d !== null && !isNaN(d));
+    
+    // Fallback to initialBalance if no valid data
+    const minBalance = balances.length > 0 ? Math.min(...balances) : initialBalance;
+    const maxBalance = balances.length > 0 ? Math.max(...balances) : initialBalance;
+    const maxDrawdown = drawdowns.length > 0 ? Math.max(...drawdowns) : 0;
     
     const balanceRange = maxBalance - minBalance;
     
@@ -113,14 +117,14 @@ export function EquityChart({
   // Create equity curve path
   const equityPath = equityData.map((point, index) => {
     const x = getX(point.timestamp);
-    const y = getY(point.balance);
+    const y = getY(point.balance || 0);
     return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
   }).join(' ');
 
   // Create drawdown area path
   const drawdownPath = equityData.map((point, index) => {
     const x = getX(point.timestamp);
-    const y = getDrawdownY(point.drawdown);
+    const y = getDrawdownY(point.drawdown || 0);
     return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
   }).join(' ');
 
@@ -258,14 +262,19 @@ export function EquityChart({
           
           {/* Trade markers */}
           {showTradeMarkers && completedTrades.map((trade) => {
+            // Comprehensive null safety for trade data
+            if (!trade || !trade.entryTime || !trade.exitTime || !trade.id) {
+              return null;
+            }
+            
             const entryX = getX(trade.entryTime);
-            const exitX = getX(trade.exitTime!);
-            const entryY = getY(
-              equityData.find(d => new Date(d.timestamp).getTime() >= new Date(trade.entryTime).getTime())?.balance || initialBalance
-            );
-            const exitY = getY(
-              equityData.find(d => new Date(d.timestamp).getTime() >= new Date(trade.exitTime!).getTime())?.balance || initialBalance
-            );
+            const exitX = getX(trade.exitTime);
+            // Find equity balance at trade entry/exit with better null safety
+            const entryEquityPoint = equityData.find(d => new Date(d.timestamp).getTime() >= new Date(trade.entryTime).getTime());
+            const exitEquityPoint = equityData.find(d => new Date(d.timestamp).getTime() >= new Date(trade.exitTime).getTime());
+            
+            const entryY = getY(entryEquityPoint?.balance ?? initialBalance);
+            const exitY = getY(exitEquityPoint?.balance ?? initialBalance);
             
             const isWin = (trade.pnl || 0) > 0;
             const isSelected = selectedTrade?.id === trade.id;
@@ -296,7 +305,7 @@ export function EquityChart({
                   onClick={() => onTradeSelect?.(trade)}
                 >
                   <title>
-                    {`Entry: ${trade.action.toUpperCase()} at ${trade.entryPrice.toFixed(5)}\n${new Date(trade.entryTime).toLocaleString()}`}
+                    {`Entry: ${trade.action.toUpperCase()} at ${(trade.entryPrice || 0).toFixed(5)}\n${new Date(trade.entryTime).toLocaleString()}`}
                   </title>
                 </circle>
                 
@@ -312,7 +321,7 @@ export function EquityChart({
                   onClick={() => onTradeSelect?.(trade)}
                 >
                   <title>
-                    {`Exit: ${trade.exitReason} at ${trade.exitPrice?.toFixed(5)}\nP&L: ${formatCurrency(trade.pnl || 0)}\n${new Date(trade.exitTime!).toLocaleString()}`}
+                    {`Exit: ${trade.exitReason || 'Closed'} at ${(trade.exitPrice || 0).toFixed(5)}\nP&L: ${formatCurrency(trade.pnl || 0)}\n${new Date(trade.exitTime!).toLocaleString()}`}
                   </title>
                 </circle>
                 

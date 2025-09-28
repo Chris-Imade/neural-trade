@@ -18,7 +18,7 @@ import { EquityChart } from './equity-chart';
 import { useToast } from '@/components/ui/toast';
 
 interface BacktestParamsInput {
-  strategy: 'vab_breakout' | 'mean_reversion' | 'dual_timeframe_trend';
+  strategy: 'trend_following' | 'mean_reversion' | 'momentum_trading' | 'intraday_breakout' | 'statistical_pairs' | 'volatility_channel' | 'vwap_strategy' | 'crossover_systems' | 'fibonacci_bot' | 'risk_adjusted_scalping' | 'latency_arbitrage' | 'hft_tick_scalping' | 'martingale_grid';
   datasetId: string;
   initialBalance: number;
   propFirm: 'equity-edge' | 'fundednext';
@@ -28,9 +28,10 @@ interface BacktestParamsInput {
 interface BacktestResultsProps {
   backtestParams?: BacktestParamsInput;
   onRunBacktest?: (params: BacktestParamsInput) => void;
+  onBacktestComplete?: (results: any) => void;
 }
 
-export function BacktestResults({ backtestParams, onRunBacktest }: BacktestResultsProps) {
+export function BacktestResults({ backtestParams, onRunBacktest, onBacktestComplete }: BacktestResultsProps) {
   const [hasResults, setHasResults] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<RealBacktestResults | null>(null);
@@ -48,7 +49,7 @@ export function BacktestResults({ backtestParams, onRunBacktest }: BacktestResul
       propFirm: params.propFirm,
       riskPerTrade: String(params.riskPerTrade),
     });
-    const res = await fetch(`/api/backtest/dataset?${query.toString()}`, { cache: 'no-store' });
+    const res = await fetch(`/api/backtest?${query.toString()}`, { cache: 'no-store' });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err?.error || `Backtest API failed with status ${res.status}`);
@@ -73,6 +74,9 @@ export function BacktestResults({ backtestParams, onRunBacktest }: BacktestResul
           setHasResults(true);
           setIsRunning(false);
           console.log('✅ Real backtest completed:', backtestResults);
+          
+          // Call completion callback for strategy presets
+          onBacktestComplete?.(backtestResults);
           
           // Show success toast with results
           const tradesText = backtestResults.totalTrades === 0 ? 'No trades generated' : 
@@ -134,6 +138,14 @@ export function BacktestResults({ backtestParams, onRunBacktest }: BacktestResul
       icon: TrendingUp,
       color: (results.totalReturn || 0) >= 0 ? 'text-green-400' : 'text-red-400',
       bgColor: (results.totalReturn || 0) >= 0 ? 'bg-green-500/20' : 'bg-red-500/20',
+    },
+    {
+      title: 'Final Balance',
+      value: formatCurrency((results as any).totalBalance ?? (results as any).finalBalance ?? 0),
+      change: 'Ending equity',
+      icon: BarChart3,
+      color: 'text-gray-300',
+      bgColor: 'bg-gray-500/20',
     },
     {
       title: 'Win Rate',
