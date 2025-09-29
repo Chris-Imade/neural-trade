@@ -1,3 +1,4 @@
+
 /**
  * AGGRESSIVE SCALPER - A strategy that ACTUALLY TRADES
  * 

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Play, Settings, Save } from 'lucide-react';
-import { PresetManager } from '@/lib/preset-manager';
+import { Play, Settings } from 'lucide-react';
+import { PresetManager } from '@/lib/strategy-presets';
 
 interface BacktestFormProps {
   onRunBacktest?: (params: {
@@ -10,6 +10,7 @@ interface BacktestFormProps {
     datasetId: string;
     initialBalance: number;
     riskPerTrade: number;
+    maxDrawdownPercent?: number;
   }) => Promise<void>;
 }
 
@@ -17,13 +18,13 @@ export function BacktestForm({ onRunBacktest }: BacktestFormProps) {
   const [isRunning, setIsRunning] = useState(false);
   const [datasets, setDatasets] = useState<Array<{id: string; name: string; description?: string}>>([]);
   const [loadingDatasets, setLoadingDatasets] = useState(true);
-  const presetManager = new PresetManager();
   
   const [formData, setFormData] = useState({
     strategy: 'aggressive_scalper' as 'aggressive_scalper' | 'quantum_scalper',
     datasetId: '',
     initialBalance: 10000,
-    riskPerTrade: 1
+    riskPerTrade: 1,
+    maxDrawdownPercent: 20  // Default 20% fail-safe
   });
 
   const strategies = [
@@ -91,8 +92,8 @@ export function BacktestForm({ onRunBacktest }: BacktestFormProps) {
       if (onRunBacktest) {
         await onRunBacktest(formData);
         
-        // Save successful preset
-        presetManager.savePreset(preset);
+        // Save successful preset (using static method)
+        PresetManager.savePreset(preset as any);
       }
     } finally {
       setTimeout(() => setIsRunning(false), 500);
@@ -208,6 +209,43 @@ export function BacktestForm({ onRunBacktest }: BacktestFormProps) {
               <span>Conservative (0.1%)</span>
               <span>Moderate (1-2%)</span>
               <span>Aggressive (5%)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Max Drawdown Fail-Safe */}
+        <div>
+          <label className="flex items-center justify-between text-sm font-medium text-gray-200 mb-2">
+            <div className="flex items-center space-x-2">
+              <span>Max Drawdown %</span>
+              <span className="text-xs text-red-400">(Fail-Safe Stop)</span>
+            </div>
+            <span className="text-xs text-gray-400">Optional</span>
+          </label>
+          <div className="space-y-2">
+            <div className="flex items-center space-x-3">
+              <input
+                type="range"
+                min="5"
+                max="50"
+                step="5"
+                value={formData.maxDrawdownPercent || 20}
+                onChange={(e) => handleInputChange('maxDrawdownPercent', parseFloat(e.target.value))}
+                className="flex-1 accent-red-500"
+              />
+              <div className="bg-gray-800/50 px-3 py-1 rounded-md border border-gray-700 min-w-[80px] text-center">
+                <span className="text-red-400 font-mono">{(formData.maxDrawdownPercent || 20).toFixed(0)}%</span>
+              </div>
+            </div>
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>Tight (5-10%)</span>
+              <span>Normal (15-20%)</span>
+              <span>Loose (30-50%)</span>
+            </div>
+            <div className="bg-red-900/20 border border-red-800/30 rounded p-2 mt-2">
+              <p className="text-xs text-red-400">
+                ⚠️ Backtest will stop if drawdown exceeds {formData.maxDrawdownPercent || 20}% to protect capital
+              </p>
             </div>
           </div>
         </div>

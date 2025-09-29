@@ -9,6 +9,8 @@ export async function GET(request: NextRequest) {
   const datasetId = searchParams.get('datasetId');
   const initialBalance = Number(searchParams.get('initialBalance')) || 10000;
   const riskPerTrade = Number(searchParams.get('riskPerTrade')) || 1;
+  const maxDrawdownPercent = searchParams.get('maxDrawdownPercent') ? 
+    Number(searchParams.get('maxDrawdownPercent')) : undefined;
 
   if (!strategy || !datasetId) {
     return NextResponse.json({
@@ -22,6 +24,9 @@ export async function GET(request: NextRequest) {
     console.log(`📁 Using dataset: ${datasetId}`);
     console.log(`💰 Initial balance: $${initialBalance}`);
     console.log(`⚠️ Risk per trade: ${riskPerTrade}%`);
+    if (maxDrawdownPercent) {
+      console.log(`🛑 Max drawdown fail-safe: ${maxDrawdownPercent}%`);
+    }
     
     // Use the REAL backtesting engine with REAL strategies
     const engine = new BacktestEngine();
@@ -29,7 +34,8 @@ export async function GET(request: NextRequest) {
       strategy,
       datasetId,
       initialBalance,
-      riskPerTrade
+      riskPerTrade,
+      maxDrawdownPercent
     });
 
     console.log(`✅ Backtest complete: ${results.totalTrades} trades, ${results.winRate.toFixed(1)}% win rate`);

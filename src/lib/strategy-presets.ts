@@ -3,6 +3,8 @@ interface StrategyParameters {
   propFirm: string;
   maxPositions: number;
   timeframe: string;
+  datasetId?: string;  // Added for backtest preset compatibility
+  initialBalance?: number;  // Added for backtest preset compatibility
   // Strategy-specific parameters
   sessionStart?: number;
   sessionEnd?: number;
@@ -147,3 +149,5 @@ export class StrategyPresetManager {
     };
   }
 }
+
+export { StrategyPresetManager as PresetManager };

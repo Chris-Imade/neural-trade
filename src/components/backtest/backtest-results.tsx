@@ -21,6 +21,7 @@ interface BacktestParamsInput {
   datasetId: string;
   initialBalance: number;
   riskPerTrade: number;
+  maxDrawdownPercent?: number;
 }
 
 interface BacktestResultsProps {
@@ -32,10 +33,15 @@ export function BacktestResults({ backtestParams, onBacktestComplete }: Backtest
   const [results, setResults] = useState<RealBacktestResults | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
+  const [shouldRun, setShouldRun] = useState(false);
 
-  // Run backtest when params change
+  // Run backtest only when explicitly triggered
   useEffect(() => {
-    if (!backtestParams) return;
+    if (!backtestParams || !shouldRun) return;
+    
+    const controller = new AbortController();
+    setAbortController(controller);
     
     const runBacktest = async () => {
       setIsLoading(true);
@@ -49,7 +55,15 @@ export function BacktestResults({ backtestParams, onBacktestComplete }: Backtest
           riskPerTrade: backtestParams.riskPerTrade.toString()
         });
         
-        const response = await fetch(`/api/backtest?${queryParams.toString()}`);
+        // Add maxDrawdownPercent if provided
+        if (backtestParams.maxDrawdownPercent) {
+          queryParams.set('maxDrawdownPercent', backtestParams.maxDrawdownPercent.toString());
+        }
+        
+        const response = await fetch(`/api/backtest?${queryParams.toString()}`, {
+          signal: controller.signal
+        });
+        
         if (!response.ok) {
           throw new Error(`Backtest failed: ${response.status}`);
         }
@@ -61,22 +75,52 @@ export function BacktestResults({ backtestParams, onBacktestComplete }: Backtest
           onBacktestComplete(data);
         }
       } catch (error) {
-        console.error('Backtest error:', error);
-        setErrorMsg(error instanceof Error ? error.message : 'Backtest failed');
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Backtest error:', error);
+          setErrorMsg(error instanceof Error ? error.message : 'Backtest failed');
+        } else {
+          setErrorMsg('Backtest cancelled by user');
+        }
       } finally {
         setIsLoading(false);
+        setShouldRun(false);
+        setAbortController(null);
       }
     };
     
     runBacktest();
-  }, [backtestParams, onBacktestComplete]);
+  }, [shouldRun]);
+  
+  // Trigger backtest when params change
+  useEffect(() => {
+    if (backtestParams) {
+      setShouldRun(true);
+    }
+  }, [backtestParams]);
+  
+  const handleForceStop = () => {
+    if (abortController) {
+      abortController.abort();
+      setIsLoading(false);
+      setErrorMsg('Backtest stopped by user');
+    }
+  };
 
   if (isLoading) {
     return (
       <div className="bg-gray-900/50 rounded-lg border border-gray-800 p-8">
-        <div className="flex items-center justify-center space-x-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-400"></div>
-          <span className="text-gray-400">Running backtest...</span>
+        <div className="flex flex-col items-center justify-center space-y-4">
+          <div className="flex items-center space-x-3">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-400"></div>
+            <span className="text-gray-400">Running backtest... Processing candles...</span>
+          </div>
+          <button
+            onClick={handleForceStop}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition flex items-center space-x-2"
+          >
+            <span>⏹</span>
+            <span>Force Stop</span>
+          </button>
         </div>
       </div>
     );

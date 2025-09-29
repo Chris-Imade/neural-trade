@@ -126,6 +126,7 @@ export interface BacktestParams {
   datasetId: string;
   initialBalance: number;
   riskPerTrade: number;
+  maxDrawdownPercent?: number;  // Fail-safe: stop if drawdown exceeds this
 }
 
 export class BacktestEngine {
@@ -245,6 +246,30 @@ export class BacktestEngine {
       const drawdown = ((maxBalance - currentEquity) / maxBalance) * 100;
       if (drawdown > maxDrawdown) {
         maxDrawdown = drawdown;
+      }
+      
+      // FAIL-SAFE: Stop if drawdown exceeds maximum allowed
+      if (params.maxDrawdownPercent && drawdown > params.maxDrawdownPercent) {
+        console.log(`🛑 FAIL-SAFE TRIGGERED! Drawdown ${drawdown.toFixed(1)}% exceeds maximum ${params.maxDrawdownPercent}%`);
+        console.log(`💔 Stopping backtest to protect capital. Balance: $${currentEquity.toFixed(2)}`);
+        
+        // Close all open trades
+        for (const trade of openTrades) {
+          trade.exitTime = currentCandle.timestamp;
+          trade.exitPrice = currentCandle.close;
+          trade.exitReason = 'Fail-safe stop';
+          
+          const profit = trade.action === 'buy' 
+            ? (trade.exitPrice - trade.entryPrice) * trade.volume * 100
+            : (trade.entryPrice - trade.exitPrice) * trade.volume * 100;
+          
+          trade.profit = profit;
+          trade.profitPercent = (profit / (trade.entryPrice * trade.volume * 100)) * 100;
+          trades.push(trade);
+          currentBalance += profit;
+        }
+        
+        break; // Exit the backtest loop
       }
 
       equityData.push({
