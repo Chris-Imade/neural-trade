@@ -1,10 +1,11 @@
-interface StrategyParameters {
+export interface StrategyParameters {
   riskPerTrade: number;
   propFirm: string;
   maxPositions: number;
   timeframe: string;
   datasetId?: string;  // Added for backtest preset compatibility
   initialBalance?: number;  // Added for backtest preset compatibility
+  maxDrawdownPercent?: number;  // Added for risk management fail-safe
   // Strategy-specific parameters
   sessionStart?: number;
   sessionEnd?: number;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { BacktestEngine } from '@/lib/backtesting-engine';
+import { ServerBacktestEngine } from '@/lib/server-backtest-engine';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Use the REAL backtesting engine with REAL strategies
-    const engine = new BacktestEngine();
+    const engine = new ServerBacktestEngine();
     const results = await engine.runBacktest({
       strategy,
       datasetId,

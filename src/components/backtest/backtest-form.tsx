@@ -79,21 +79,12 @@ export function BacktestForm({ onRunBacktest }: BacktestFormProps) {
     setIsRunning(true);
     
     try {
-      // Save preset with results
-      const preset = {
-        name: `${formData.strategy} - ${new Date().toLocaleDateString()}`,
-        strategy: formData.strategy,
-        datasetId: formData.datasetId,
-        initialBalance: formData.initialBalance,
-        riskPerTrade: formData.riskPerTrade
-      };
-      
       // Call the backtest API
       if (onRunBacktest) {
         await onRunBacktest(formData);
         
-        // Save successful preset (using static method)
-        PresetManager.savePreset(preset as any);
+        // Note: Preset saving is handled in the StrategyPresets component
+        // after backtest results are available
       }
     } finally {
       setTimeout(() => setIsRunning(false), 500);

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
-import { PresetManager, TradingPreset } from '@/lib/preset-manager';
+import { StrategyPresetManager, StrategyPreset } from '@/lib/strategy-presets';
 import { Play, Square, Bot, TrendingUp, AlertCircle } from 'lucide-react';
 
 interface LiveTrade {
@@ -18,16 +18,15 @@ interface LiveTrade {
 
 export default function BotTradingPage() {
   const [selectedPreset, setSelectedPreset] = useState<string>('');
-  const [presets, setPresets] = useState<TradingPreset[]>([]);
+  const [presets, setPresets] = useState<StrategyPreset[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [activeTrades, setActiveTrades] = useState<LiveTrade[]>([]);
   const [totalPnL, setTotalPnL] = useState(0);
   const [tradeCount, setTradeCount] = useState(0);
-  const presetManager = new PresetManager();
 
   // Load presets on mount
   useEffect(() => {
-    const loadedPresets = presetManager.getBestPresets();
+    const loadedPresets = StrategyPresetManager.getPresets();
     setPresets(loadedPresets);
     
     // Load saved state
@@ -39,45 +38,46 @@ export default function BotTradingPage() {
     }
   }, []);
 
-  // Simulate live trades when bot is running
+  // REAL trading execution when bot is running
   useEffect(() => {
-    if (!isRunning) return;
+    if (!isRunning || !selectedPreset) return;
     
-    const interval = setInterval(() => {
-      // Simulate receiving a trade signal
-      if (Math.random() > 0.7 && activeTrades.length < 5) {
-        const newTrade: LiveTrade = {
-          id: `trade_${Date.now()}`,
-          time: new Date().toLocaleTimeString(),
-          symbol: 'XAUUSD',
-          type: Math.random() > 0.5 ? 'BUY' : 'SELL',
-          volume: parseFloat((Math.random() * 0.5 + 0.1).toFixed(2)),
-          entry: 1950 + Math.random() * 100,
-          current: 1950 + Math.random() * 100,
-          pnl: 0
-        };
-        newTrade.pnl = (newTrade.current - newTrade.entry) * newTrade.volume * 100 * (newTrade.type === 'BUY' ? 1 : -1);
-        
-        setActiveTrades(prev => [...prev, newTrade]);
-        setTradeCount(prev => prev + 1);
+    const preset = presets.find(p => p.id === selectedPreset);
+    if (!preset) return;
+
+    console.log(`🚀 REAL BOT TRADING ACTIVE with ${preset.strategy}`);
+    console.log(`📊 Risk per trade: ${preset.parameters?.riskPerTrade || 1}%`);
+    
+    // Fetch live trades from MetaAPI every 10 seconds
+    const interval = setInterval(async () => {
+      try {
+        const response = await fetch('/api/live/trades');
+        if (response.ok) {
+          const trades = await response.json();
+          
+          // Convert MetaAPI trades to LiveTrade format
+          const liveTrades: LiveTrade[] = trades.map((trade: any) => ({
+            id: trade.id,
+            time: new Date(trade.time).toLocaleTimeString(),
+            symbol: trade.symbol,
+            type: trade.type,
+            volume: trade.volume,
+            entry: trade.openPrice,
+            current: trade.currentPrice || trade.openPrice,
+            pnl: trade.profit || 0
+          }));
+          
+          setActiveTrades(liveTrades);
+          setTradeCount(liveTrades.length);
+          setTotalPnL(liveTrades.reduce((sum, trade) => sum + trade.pnl, 0));
+        }
+      } catch (error) {
+        console.error('Failed to fetch live trades:', error);
       }
-      
-      // Update P&L for existing trades
-      setActiveTrades(prev => prev.map(trade => ({
-        ...trade,
-        current: trade.entry + (Math.random() - 0.5) * 10,
-        pnl: ((trade.entry + (Math.random() - 0.5) * 10) - trade.entry) * trade.volume * 100 * (trade.type === 'BUY' ? 1 : -1)
-      })));
-      
-      // Calculate total P&L
-      setTotalPnL(prev => {
-        const sum = activeTrades.reduce((acc, trade) => acc + trade.pnl, 0);
-        return sum;
-      });
-    }, 3000);
+    }, 10000); // Update every 10 seconds
     
     return () => clearInterval(interval);
-  }, [isRunning, activeTrades]);
+  }, [isRunning, selectedPreset, presets]);
 
   const handleStartTrading = () => {
     if (!selectedPreset) {
@@ -171,19 +171,19 @@ export default function BotTradingPage() {
                         <div className="text-sm text-gray-400 mt-1">
                           {preset.strategy === 'aggressive_scalper' ? '🔥 Aggressive Scalper' : '⚡ Quantum Scalper'}
                         </div>
-                        {preset.winRate && (
+                        {preset.performance && (
                           <div className="mt-2 space-y-1 text-xs">
                             <div className="flex justify-between">
                               <span className="text-gray-500">Win Rate:</span>
-                              <span className="text-green-400">{preset.winRate.toFixed(1)}%</span>
+                              <span className="text-green-400">{(preset.performance.winRate || 0).toFixed(1)}%</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-500">Profit Factor:</span>
-                              <span className="text-green-400">{preset.profitFactor?.toFixed(2) || 'N/A'}</span>
+                              <span className="text-green-400">{(preset.performance.profitFactor || 0).toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-500">Risk/Trade:</span>
-                              <span className="text-yellow-400">{preset.riskPerTrade}%</span>
+                              <span className="text-yellow-400">{preset.parameters?.riskPerTrade || 1}%</span>
                             </div>
                           </div>
                         )}
@@ -308,7 +308,7 @@ export default function BotTradingPage() {
                 <div>
                   <span className="text-gray-500 text-sm">Risk/Trade:</span>
                   <span className="ml-2 text-yellow-400 font-semibold">
-                    {presets.find(p => p.id === selectedPreset)?.riskPerTrade}%
+                    {presets.find(p => p.id === selectedPreset)?.parameters?.riskPerTrade || 1}%
                   </span>
                 </div>
                 {isRunning && (

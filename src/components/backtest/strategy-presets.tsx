@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { Save, Download, Trash2, Star, TrendingUp, Shield } from 'lucide-react';
-import { StrategyPresetManager, StrategyPreset } from '@/lib/strategy-presets';
+import { StrategyPresetManager, StrategyPreset, StrategyParameters } from '@/lib/strategy-presets';
+import { BacktestResults, BacktestParams } from '@/lib/backtesting-engine';
 
 interface StrategyPresetsProps {
   onLoadPreset?: (preset: StrategyPreset) => void;
   currentStrategy?: string;
-  currentParams?: any;
-  lastBacktestResults?: any;
+  currentParams?: StrategyParameters | BacktestParams | Record<string, string | number | boolean>;
+  lastBacktestResults?: BacktestResults;
 }
 
 export function StrategyPresets({ 
@@ -33,11 +34,35 @@ export function StrategyPresets({
   const handleSavePreset = () => {
     if (!presetName.trim() || !currentStrategy || !currentParams) return;
 
+    // Ensure we have valid backtest results before saving
+    if (!lastBacktestResults || lastBacktestResults.winRate === undefined) {
+      alert('Please run a backtest first to generate performance data');
+      return;
+    }
+
+    // Convert currentParams to StrategyParameters format
+    const params = currentParams as Record<string, unknown>;
+    const strategyParams: StrategyParameters = {
+      riskPerTrade: (typeof params.riskPerTrade === 'number' ? params.riskPerTrade : 1),
+      propFirm: (typeof params.propFirm === 'string' ? params.propFirm : 'Generic'),
+      maxPositions: (typeof params.maxPositions === 'number' ? params.maxPositions : 1),
+      timeframe: (typeof params.timeframe === 'string' ? params.timeframe : '1h'),
+      datasetId: (typeof params.datasetId === 'string' ? params.datasetId : undefined),
+      initialBalance: (typeof params.initialBalance === 'number' ? params.initialBalance : undefined),
+      // Copy any additional strategy-specific parameters with type safety
+      ...(Object.fromEntries(
+        Object.entries(params).filter(([key, value]) => 
+          !['riskPerTrade', 'propFirm', 'maxPositions', 'timeframe', 'datasetId', 'initialBalance'].includes(key) &&
+          (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')
+        )
+      ) as Record<string, string | number | boolean>)
+    };
+
     const preset = StrategyPresetManager.createPresetFromBacktest(
       presetName.trim(),
       currentStrategy,
-      currentParams,
-      lastBacktestResults || {}
+      strategyParams,
+      lastBacktestResults
     );
 
     StrategyPresetManager.savePreset(preset);
@@ -139,25 +164,25 @@ export function StrategyPresets({
                 <div className="grid grid-cols-4 gap-4 text-sm">
                   <div>
                     <span className="text-gray-400">Win Rate:</span>
-                    <span className="text-green-400 ml-1">{preset.performance.winRate.toFixed(1)}%</span>
+                    <span className="text-green-400 ml-1">{(preset.performance?.winRate || 0).toFixed(1)}%</span>
                   </div>
                   <div>
                     <span className="text-gray-400">Profit Factor:</span>
-                    <span className="text-blue-400 ml-1">{preset.performance.profitFactor.toFixed(2)}</span>
+                    <span className="text-blue-400 ml-1">{(preset.performance?.profitFactor || 0).toFixed(2)}</span>
                   </div>
                   <div>
                     <span className="text-gray-400">Max DD:</span>
-                    <span className="text-red-400 ml-1">{preset.performance.maxDrawdown.toFixed(1)}%</span>
+                    <span className="text-red-400 ml-1">{(preset.performance?.maxDrawdown || 0).toFixed(1)}%</span>
                   </div>
                   <div>
                     <span className="text-gray-400">Return:</span>
-                    <span className={`ml-1 ${preset.performance.totalReturn >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {preset.performance.totalReturn.toFixed(1)}%
+                    <span className={`ml-1 ${(preset.performance?.totalReturn || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {(preset.performance?.totalReturn || 0).toFixed(1)}%
                     </span>
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Risk: {preset.parameters.riskPerTrade}% | {preset.parameters.propFirm} | 
+                  Risk: {preset.parameters?.riskPerTrade || 0}% | {preset.parameters?.propFirm || 'N/A'} | 
                   Created: {new Date(preset.createdAt).toLocaleDateString()}
                 </p>
               </div>

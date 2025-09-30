@@ -1,10 +1,17 @@
+/**
+ * Server-only Enhanced Institutional Backtest Engine
+ * Contains Node.js dependencies - only for API routes
+ */
+
 import { InstitutionalHFTEngine } from './quantum-scalper-strategy';
 import { ProductionScalpingEngine } from './aggressive-scalper';
 import { DatasetManager, Dataset } from './dataset-manager';
 import { EnhancedBacktestHelpers } from './enhanced-backtest-helpers';
 import { EnhancedBacktestMethods, BacktestState } from './enhanced-backtest-methods';
+import { BacktestResults, BacktestTrade, BacktestEquityPoint } from './backtest-types';
+import { TechnicalIndicators, TradingSignal } from './backtesting-engine';
 
-// Enhanced interfaces with better type safety and professional features
+// Server-only interfaces (with Node.js dependencies)
 export interface MarketData {
   timestamp: string;
   open: number;
@@ -18,345 +25,31 @@ export interface MarketData {
   real_volume?: number;
 }
 
-// Professional-grade signal metadata for institutional trading
-export interface TradingSignalMetadata {
-  // Core execution metrics
-  signalId: string;
-  urgency: 'immediate' | 'patient' | 'opportunistic';
-  timeToLive: number;
-  processingTimeMs: number;
-  
-  // Advanced market analysis
-  momentum: number;
-  volatility: number;
-  confluence: number;
-  volumeRatio: number;
-  entryPrice: number;
-  timestamp: number;
-  
-  // Sophisticated risk management
-  expectedSlippage: number;
-  fillProbability: number;
-  marketImpact: number;
-  riskAdjustment: number;
-  liquidityScore: number;
-  
-  // Market microstructure analysis
-  orderFlow: number;
-  microstructure: number;
-  bidAskSpread: number;
-  marketDepth: number;
-  
-  // Advanced analytics
-  volatilityRegime: 'low' | 'normal' | 'high' | 'extreme';
-  marketSession: 'london' | 'new_york' | 'asian' | 'overlap';
-  trendStrength: number;
-  supportResistanceLevel: number;
-  correlationScore: number;
-  sentimentIndicator: number;
-  
-  // Machine learning features
-  mlConfidence?: number;
-  featureImportance?: Record<string, number>;
-  anomalyScore?: number;
-}
-
-export interface TradingSignal {
-  action: 'buy' | 'sell' | 'hold';
-  confidence: number;
-  stopLoss: number;
-  takeProfit: number;
-  riskReward: number;
-  strategy: string;
-  reason: string;
-  timeframe: string;
-  
-  // Enhanced signal features
-  positionSize: number;
-  maxRisk: number;
-  expectedReturn: number;
-  metadata: TradingSignalMetadata;
-  alternativeTargets?: number[];
-  dynamicStops?: boolean;
-}
-
-// Advanced technical indicators with institutional-grade calculations
-export interface TechnicalIndicators {
-  // Bollinger Bands with enhanced features
-  bollingerUpper: number;
-  bollingerMiddle: number;
-  bollingerLower: number;
-  bollingerWidth: number;
-  bollingerPosition: number;
-  
-  // RSI with divergence detection
-  rsi: number;
-  rsiDivergence: 'bullish' | 'bearish' | 'none';
-  rsiOverbought: boolean;
-  rsiOversold: boolean;
-  
-  // Moving averages with trend analysis
-  ema20: number;
-  ema50: number;
-  ema200: number;
-  sma20: number;
-  sma50: number;
-  trendAlignment: number; // -1 to 1 scale
-  
-  // Volatility indicators
-  atr: number;
-  atrMultiplier: number;
-  volatilityRank: number;
-  
-  // Session data with enhanced features
-  sessionHigh: number;
-  sessionLow: number;
-  sessionRange: number;
-  
-  // Volume analysis
-  volume: number;
-  volumeProfile: number;
-  volumeWeightedPrice: number;
-  
-  // MACD with signal analysis
-  macd: {
-    macd: number;
-    signal: number;
-    histogram: number;
-    trend: 'bullish' | 'bearish' | 'neutral';
-    crossover: boolean;
-  };
-  
-  // Enhanced Bollinger Bands
-  bollingerBands: {
-    upper: number;
-    middle: number;
-    lower: number;
-    width: number;
-    percentB: number;
-    squeeze: boolean;
-  };
-  
-  // Additional professional indicators
-  momentum: number;
-  stochastic: {
-    k: number;
-    d: number;
-    overbought: boolean;
-    oversold: boolean;
-  };
-  
-  // Market structure
-  supportLevel: number;
-  resistanceLevel: number;
-  pivotPoint: number;
-}
-
-// Enhanced trade interface with comprehensive tracking
-export interface BacktestTrade {
-  // Core trade data
-  id: string;
-  entryTime: string;
-  exitTime?: string;
-  symbol: string;
-  action: 'buy' | 'sell';
-  entryPrice: number;
-  exitPrice?: number;
-  stopLoss: number;
-  takeProfit: number;
-  volume: number;
-  
-  // Strategy and confidence
-  strategy: string;
-  confidence: number;
-  reason: string;
-  
-  // P&L calculations
-  profit?: number;
-  profitPercent?: number;
-  pnl?: number;
-  pnlPips?: number;
-  
-  // Timing analysis
-  duration?: number;
-  holdTime?: number;
-  
-  // Risk analysis
-  mfe?: number; // Maximum Favorable Excursion
-  mae?: number; // Maximum Adverse Excursion
-  maxFavorableExcursion?: number;
-  maxAdverseExcursion?: number;
-  
-  // Exit analysis
-  exitReason?: string;
-  exitConfidence?: number;
-  
-  // Enhanced metrics
-  commission?: number;
-  swap?: number;
-  slippage?: number;
-  fillPrice?: number;
-  
-  // Trade quality metrics
-  tradeQuality: 'excellent' | 'good' | 'average' | 'poor';
-  riskReward: number;
-  actualRiskReward?: number;
-  
-  // Market conditions during trade
-  marketConditions?: {
-    volatility: number;
-    trend: string;
-    volume: number;
-    spread: number;
-  };
-}
-
-// Enhanced equity point with detailed tracking
-export interface BacktestEquityPoint {
-  timestamp: string;
-  balance: number;
-  drawdown: number;
-  drawdownPercent: number;
-  trades: number;
-  openTrades: number;
-  unrealizedPnl: number;
-  realizedPnl: number;
-  highWaterMark: number;
-  volatility: number;
-  sharpeRatio: number;
-}
-
-// Comprehensive backtest results with institutional metrics
-export interface BacktestResults {
-  // Basic metrics
-  initialBalance: number;
-  finalBalance: number;
-  totalReturn: number;
-  totalReturnPercent: number;
-  annualizedReturn: number;
-  totalProfit: number;
-  totalLoss: number;
-  netProfit: number;
-  
-  // Trading statistics
-  totalTrades: number;
-  winningTrades: number;
-  losingTrades: number;
-  winRate: number;
-  lossRate: number;
-  
-  // Advanced performance metrics
-  profitFactor: number;
-  payoffRatio: number;
-  averageWin: number;
-  averageLoss: number;
-  largestWin: number;
-  largestLoss: number;
-  
-  // Risk metrics
-  maxDrawdown: number;
-  maxDrawdownPercent: number;
-  maxDrawdownDuration: number;
-  averageDrawdown: number;
-  recoveryFactor: number;
-  
-  // Statistical measures
-  sharpeRatio: number;
-  sortinoRatio: number;
-  calmarRatio: number;
-  sterlingRatio: number;
-  informationRatio: number;
-  
-  // Consistency metrics
-  winStreakMax: number;
-  lossStreakMax: number;
-  averageHoldTime: number;
-  averageMFE: number;
-  averageMAE: number;
-  consistency: number;
-  
-  // Market efficiency metrics
-  alphaGeneration: number;
-  betaExposure: number;
-  correlationToMarket: number;
-  
-  // Trade distribution analysis
-  tradeDistribution: {
-    excellent: number;
-    good: number;
-    average: number;
-    poor: number;
-  };
-  
-  // Time-based analysis
-  monthlyReturns: Array<{
-    month: string;
-    return: number;
-    trades: number;
-    winRate: number;
-  }>;
-  
-  // Data arrays
-  trades: BacktestTrade[];
-  equityData: BacktestEquityPoint[];
-  equityCurve: BacktestEquityPoint[];
-  
-  // Execution details
-  executionTime: number;
-  dataPoints: number;
-  isRealBacktest: boolean;
-  
-  // Performance attribution
-  performanceAttribution: {
-    strategyContribution: number;
-    timingContribution: number;
-    riskManagementContribution: number;
-  };
-  
-  // Risk-adjusted metrics
-  riskAdjustedMetrics: {
-    volAdjustedReturn: number;
-    downDeviationAdjustedReturn: number;
-    varAdjustedReturn: number;
-  };
-}
-
-// Enhanced backtest parameters with professional controls
 export interface BacktestParams {
   strategy: 'aggressive_scalper' | 'quantum_scalper';
   datasetId: string;
   initialBalance: number;
   riskPerTrade: number;
   maxDrawdownPercent?: number;
-  
-  // Advanced risk controls
   maxSimultaneousPositions?: number;
   maxDailyRisk?: number;
   maxMonthlyDrawdown?: number;
-  
-  // Position sizing options
   positionSizingMethod?: 'fixed_percent' | 'kelly' | 'optimal_f' | 'volatility_adjusted';
-  
-  // Slippage and costs
   slippageModel?: 'fixed' | 'linear' | 'square_root';
   commissionPerTrade?: number;
   spreadCost?: number;
-  
-  // Market hours and conditions
   tradingHours?: {
     start: string;
     end: string;
   };
   avoidNews?: boolean;
   minLiquidity?: number;
-  
-  // Optimization settings
   warmupPeriod?: number;
   cooldownPeriod?: number;
   reinvestProfits?: boolean;
 }
 
-export class EnhancedInstitutionalBacktestEngine {
+export class ServerBacktestEngine {
   private quantumScalper: InstitutionalHFTEngine;
   private aggressiveScalper: ProductionScalpingEngine;
   private datasetManager: DatasetManager;
@@ -515,7 +208,6 @@ export class EnhancedInstitutionalBacktestEngine {
   ): Promise<BacktestResults> {
     
     let progressLastLogged = 0;
-    const batchSize = 100; // Process in batches for better performance
     
     for (let i = 50; i < data.length; i++) {
       const currentCandle = data[i];
@@ -540,7 +232,7 @@ export class EnhancedInstitutionalBacktestEngine {
       }
       
       // Remove exited trades from open trades
-      state.openTrades = state.openTrades.filter(t => !exitedTrades.includes(t));
+      state.openTrades = state.openTrades.filter((t: BacktestTrade) => !exitedTrades.includes(t));
       
       // Generate and evaluate signals
       const signal = EnhancedBacktestMethods.getEnhancedStrategySignal(
@@ -592,11 +284,7 @@ export class EnhancedInstitutionalBacktestEngine {
     return this.calculateEnhancedResults(params, state, data.length, performance.now());
   }
 
-  private shouldExecuteSignal(
-    signal: TradingSignal, 
-    state: BacktestState, 
-    params: BacktestParams
-  ): boolean {
+  private shouldExecuteSignal(signal: TradingSignal, state: BacktestState, params: BacktestParams): boolean {
     // Enhanced signal filtering
     if (signal.action === 'hold') return false;
     if (signal.confidence < 75) return false;
@@ -611,18 +299,13 @@ export class EnhancedInstitutionalBacktestEngine {
     if (currentRisk > maxDailyRisk) return false;
     
     // Market conditions
-    if (signal.metadata.volatilityRegime === 'extreme') return false;
-    if (signal.metadata.liquidityScore < 0.5) return false;
+    if (signal.metadata?.volatilityRegime === 'extreme') return false;
+    if (signal.metadata?.liquidityScore < 0.5) return false;
     
     return true;
   }
 
-  private createEnhancedTrade(
-    signal: TradingSignal,
-    candle: MarketData,
-    state: BacktestState,
-    params: BacktestParams
-  ): BacktestTrade | null {
+  private createEnhancedTrade(signal: TradingSignal, candle: MarketData, state: BacktestState, params: BacktestParams): BacktestTrade | null {
     const riskAmount = state.currentBalance * (params.riskPerTrade / 100);
     const stopDistance = Math.abs(candle.close - signal.stopLoss);
     
@@ -632,7 +315,7 @@ export class EnhancedInstitutionalBacktestEngine {
     let volume = EnhancedBacktestMethods.calculateOptimalPositionSize(
       riskAmount,
       stopDistance,
-      signal.metadata,
+      signal.metadata || {},
       params.positionSizingMethod || 'fixed_percent'
     );
     
@@ -655,17 +338,15 @@ export class EnhancedInstitutionalBacktestEngine {
       tradeQuality: EnhancedBacktestMethods.assessTradeQuality(signal),
       commission: (params.commissionPerTrade || 0) * volume,
       marketConditions: {
-        volatility: signal.metadata.volatility,
-        trend: signal.metadata.trendStrength > 0.5 ? 'bullish' : 'bearish',
-        volume: signal.metadata.volumeRatio,
+        volatility: signal.metadata?.volatility || 0,
+        trend: (signal.metadata?.trendStrength || 0) > 0.5 ? 'bullish' : 'bearish',
+        volume: signal.metadata?.volumeRatio || 1,
         spread: candle.spread || 0.02
       }
     };
     
     return trade;
   }
-
-  // Method moved to EnhancedBacktestMethods
 
   private calculateEnhancedResults(
     params: BacktestParams,

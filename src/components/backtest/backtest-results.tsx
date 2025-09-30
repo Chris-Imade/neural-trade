@@ -14,7 +14,7 @@ import {
 import { formatCurrency, formatPercentage } from '@/lib/utils';
 import { BacktestResults as RealBacktestResults } from '@/lib/backtesting-engine';
 import { TradeHistory } from './trade-history';
-import { EquityChart } from './equity-chart';
+import EquityChart from './equity-chart';
 
 interface BacktestParamsInput {
   strategy: 'aggressive_scalper' | 'quantum_scalper';

@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { BacktestForm } from '@/components/backtest/backtest-form';
-import { BacktestResults } from '@/components/backtest/backtest-results';
+import { BacktestResults as BacktestResultsComponent } from '@/components/backtest/backtest-results';
 import { StrategyPresets } from '@/components/backtest/strategy-presets';
+import { BacktestResults } from '@/lib/backtest-types';
 import { TrendingUp } from 'lucide-react';
 
 interface BacktestParams {
@@ -12,18 +13,10 @@ interface BacktestParams {
   datasetId: string;
   initialBalance: number;
   riskPerTrade: number;
+  maxDrawdownPercent?: number;
 }
 
-interface BacktestResults {
-  totalTrades: number;
-  winRate: number;
-  finalBalance: number;
-  totalReturnPercent: number;
-  winningTrades: number;
-  losingTrades: number;
-  executionTime: number;
-  isRealBacktest: boolean;
-}
+// BacktestResults interface now imported from @/lib/backtesting-engine
 
 export default function BacktestPage() {
   const [backtestParams, setBacktestParams] = useState<BacktestParams | undefined>();
@@ -40,6 +33,11 @@ export default function BacktestPage() {
         initialBalance: params.initialBalance.toString(),
         riskPerTrade: params.riskPerTrade.toString()
       });
+      
+      // Add maxDrawdownPercent if specified
+      if (params.maxDrawdownPercent) {
+        queryParams.set('maxDrawdownPercent', params.maxDrawdownPercent.toString());
+      }
       
       const response = await fetch(`/api/backtest?${queryParams.toString()}`);
       if (!response.ok) {
@@ -87,7 +85,8 @@ export default function BacktestPage() {
               strategy: preset.strategy as 'aggressive_scalper' | 'quantum_scalper',
               datasetId: preset.parameters.datasetId || '',
               initialBalance: preset.parameters.initialBalance || 10000,
-              riskPerTrade: preset.parameters.riskPerTrade || 1
+              riskPerTrade: preset.parameters.riskPerTrade || 1,
+              maxDrawdownPercent: preset.parameters.maxDrawdownPercent || 20
             });
           }}
         />
@@ -101,7 +100,7 @@ export default function BacktestPage() {
 
           {/* Results - Use the proper BacktestResults component with charts and trade history */}
           <div className="lg:col-span-2">
-            <BacktestResults 
+            <BacktestResultsComponent 
               backtestParams={backtestParams}
               onBacktestComplete={handleBacktestComplete}
             />

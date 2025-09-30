@@ -198,8 +198,8 @@ export function TradeHistory({ trades, onTradeSelect }: TradeHistoryProps) {
             </tr>
           </thead>
           <tbody>
-            {sortedTrades.map((trade) => (
-              <React.Fragment key={trade.id}>
+            {sortedTrades.map((trade, index) => (
+              <React.Fragment key={`trade-row-${trade.id}-${index}`}>
                 <tr className="border-b border-gray-800 hover:bg-gray-800/30 transition-colors">
                   <td className="py-3 px-4">
                     <div className="text-sm">
